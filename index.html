@@ -3,25 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ToYou ❤️ Demo PWA</title>
+  <title>ToYou ❤️</title>
   <meta name="theme-color" content="#ffffff">
 
   <!-- iOS support -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="ToYou❤️" />
+  <meta name="apple-mobile-web-app-title" content="ToYou ❤️" />
   <link rel="apple-touch-icon" href="icon.png" />
+
+  <link rel="manifest" href="manifest.json" />
 
   <style>
     body {
       font-family: sans-serif;
       text-align: center;
       margin-top: 100px;
+      background: #fff;
     }
     .header {
       font-size: 32px;
       font-weight: bold;
-      color: #222;
+      color: #111;
     }
     .message {
       font-size: 18px;
@@ -29,91 +32,86 @@
       margin: 20px auto;
       color: #444;
     }
-    .install-msg {
-      margin-top: 50px;
-      font-size: 14px;
-      color: gray;
+    #installBox {
+      display: none;
+      position: fixed;
+      bottom: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 14px 20px;
+      border-radius: 12px;
+      background: #111;
+      color: white;
+      font-size: 16px;
+    }
+    #installBtn {
+      margin-left: 10px;
+      padding: 8px 14px;
+      background: #fff;
+      color: #111;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
     }
   </style>
 </head>
+
 <body>
 
-  <div class="header">📬 ToYou ❤️</div>
+  <div class="header">ToYou ❤️</div>
   <div class="message">
-    Write and send anonymous messages to people you've never dared to message before.
-    This is just a demo of a working PWA in a single file. 😊
+    Anonymous messages made simple. This page is a working PWA demo.
   </div>
 
-  <div class="install-msg">You can install this app on your device!</div>
+  <!-- Install banner -->
+  <div id="installBox">
+    Install ToYou?
+    <button id="installBtn">Install</button>
+  </div>
 
   <script>
-    /* ✅ Manifest as Inline Blob */
-    const manifest = {
-      name: "ToYou ❤️",
-      short_name: "ToYou",
-      start_url: ".",
-      display: "standalone",
-      background_color: "#ffffff",
-      theme_color: "#ffffff",
-      icons: [
-        {
-          src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAAAiVQ9NAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAx0lEQVR42u3QQQqAIBAEQdP+/7+hAy0mQZmZvkPfuvBHQAAAAAAAAAAACAjpQbWSurR5Xrb1nlQoXIRoE6ZiS/ZdEygOB/BiW7r9jK8zRXp8xGkphMgTIDqZogkCA6kaIMAgOpmgCQIDqZogkCA6kaIMAgOpmgCQIDqZogkCA6kaIMAgOpmgCQIDqZogkCA6kaIMAgOpmgCQIDqZogkCA6kaIMAgOpmgCQIDqZogkCA6kaIMAgOppDnJwvRD2vB0AAAAAAAAAAADwAPIB9uT6aCIFAAAAAElFTkSuQmCC",
-          type: "image/png",
-          sizes: "192x192"
-        }
-      ]
-    };
-    const manifestBlob = new Blob([JSON.stringify(manifest)], { type: "application/json" });
-    const manifestURL = URL.createObjectURL(manifestBlob);
-    const manifestLink = document.createElement("link");
-    manifestLink.rel = "manifest";
-    manifestLink.href = manifestURL;
-    document.head.appendChild(manifestLink);
-  </script>
-
-  <script>
-    /* ✅ Inline Minimal Service Worker */
-    const swCode = `
-      self.addEventListener('install', e => self.skipWaiting());
-      self.addEventListener('activate', e => self.clients.claim());
-      self.addEventListener('fetch', e => {
-        e.respondWith(
-          caches.match(e.request).then(response => {
-            return response || fetch(e.request);
-          }).catch(() => new Response('Offline fallback!'))
-        );
-      });
-    `;
-    const swBlob = new Blob([swCode], { type: 'text/javascript' });
-    const swUrl = URL.createObjectURL(swBlob);
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register(swUrl)
-        .then(() => console.log('✅ Service Worker registered'))
-        .catch(err => console.warn('❌ SW registration failed', err));
+    /* ---------------------------
+       Register REAL service worker
+       --------------------------- */
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js")
+        .then(() => console.log("SW registered"))
+        .catch(err => console.error("SW failed", err));
     }
-  </script>
 
-  <script>
-    /* ✅ Custom Install Prompt Handling (Chrome / Android) */
+    /* ---------------------------
+       Handle install prompt
+       --------------------------- */
     let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
+    const box = document.getElementById("installBox");
+    const btn = document.getElementById("installBtn");
+
+    window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      console.log('[PWA] Install prompt available');
-      alert("✅ You can install this as an app! You'll see an option to 'Add to Home screen' soon.");
-      deferredPrompt.prompt();
-    });
-  </script>
 
-  <script>
-    /* ✅ iOS Manual Install Tip */
+      console.log("PWA install available");
+
+      box.style.display = "block"; // Show bottom banner
+    });
+
+    btn.addEventListener("click", async () => {
+      box.style.display = "none";
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      console.log("User choice:", choice.outcome);
+      deferredPrompt = null;
+    });
+
+    /* ---------------------------
+       Manual install hint for iOS
+       --------------------------- */
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
     const isStandalone = window.navigator.standalone === true;
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
-    if (isIOS && !isStandalone && isSafari) {
+    if (isIOS && !isStandalone) {
       setTimeout(() => {
-        alert("👉 To install: Tap Share → 'Add to Home Screen'");
+        alert("👉 Tap Share → Add to Home Screen to install.");
       }, 2000);
     }
   </script>
